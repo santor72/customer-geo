@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Customer Geo Prototype</title>
+    <link
+      href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      html, body, #map { height: 100%; margin: 0; padding: 0; }
+      #status {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px 10px;
+        border-radius: 6px;
+        font: 12px/1.4 system-ui, sans-serif;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">инициализация…</div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/deck.gl@8.9.34/dist.min.js"></script>
+    <script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.min.js"></script>
+    <script>
+      window.API_BASE_URL = "http://localhost:8000/api/v1";
+    </script>
+    <script src="app.js"></script>
+  </body>
+</html>

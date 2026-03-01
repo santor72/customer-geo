@@ -1,0 +1,697 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="CustomerGeomap" database="MariaDb" id="0096fd98-1764-41c3-943a-2ff531456344" >
+	<schema name="schema_agg_month" >
+		<table name="agg_customer_month" >
+			<comment><![CDATA[Витрина данных о клиентах с историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="account_id" type="INT" >
+				<comment><![CDATA[идентификатор клиента]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="is_active" type="BOOLEAN" >
+				<comment><![CDATA[Признак активного клиента]]></comment>
+			</column>
+			<column name="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Признак заблокированного клиента]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<index name="idx_agg_customer_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="account_id" />
+			</index>
+		</table>
+		<table name="agg_h3_month" >
+			<comment><![CDATA[Витрина данных о гексагонах с историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="h3_res" type="INT" >
+				<comment><![CDATA[h3 resolution]]></comment>
+			</column>
+			<column name="h3_index" type="BIGINT" >
+				<comment><![CDATA[H3 index]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_h3_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="h3_res" />
+				<column name="h3_index" />
+			</index>
+		</table>
+		<table name="agg_settlement_month" >
+			<comment><![CDATA[Витрина данных о поселках  историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" mandatory="y" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_settlement_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="settlement_id" />
+			</index>
+			<index name="pk_agg_settlement_month" unique="PRIMARY_KEY" >
+				<column name="recv_mon" />
+			</index>
+		</table>
+	</schema>
+	<schema name="schema_customer" >
+		<table name="agg_customer_cur" prior="agg_customer_month" >
+			<comment><![CDATA[Витрина данных о клиентах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="account_id" type="INT" >
+				<comment><![CDATA[идентификатор клиента]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="is_active" type="BOOLEAN" >
+				<comment><![CDATA[Признак активного клиента]]></comment>
+			</column>
+			<column name="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Признак заблокированного клиента]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<index name="idx_agg_customer_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="account_id" />
+			</index>
+		</table>
+		<table name="agg_customer_current" prior="agg_customer_curren" >
+			<comment><![CDATA[Витрина данных о клиентах для текущего месяца
+месяц recv_mon YYYY-MM-DD - послений день текущего месяца]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="account_id" type="INT" >
+				<comment><![CDATA[идентификатор клиента]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="is_active" type="BOOLEAN" >
+				<comment><![CDATA[Признак активного клиента]]></comment>
+			</column>
+			<column name="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Признак заблокированного клиента]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<index name="idx_agg_customer_current" unique="NORMAL" >
+				<column name="account_id" />
+			</index>
+		</table>
+		<table name="agg_h3_cur" prior="agg_h3_month" >
+			<comment><![CDATA[Витрина данных о гексагонах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="h3_res" type="INT" >
+				<comment><![CDATA[h3 resolution]]></comment>
+			</column>
+			<column name="h3_index" type="BIGINT" >
+				<comment><![CDATA[H3 index]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_h3_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="h3_res" />
+				<column name="h3_index" />
+			</index>
+		</table>
+		<table name="agg_h3_current" prior="agg_settlement_currenе_0" >
+			<comment><![CDATA[Витрина данных о гексагонах с историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="h3_res" type="INT" >
+				<comment><![CDATA[h3 resolution]]></comment>
+			</column>
+			<column name="h3_index" type="BIGINT" >
+				<comment><![CDATA[H3 index]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_h3_current" unique="NORMAL" >
+				<column name="h3_res" />
+				<column name="h3_index" />
+			</index>
+		</table>
+		<table name="agg_settlement_cur" prior="agg_settlement_month" >
+			<comment><![CDATA[Витрина данных о поселках  текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" mandatory="y" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_settlement_month" unique="NORMAL" >
+				<column name="recv_mon" />
+				<column name="settlement_id" />
+			</index>
+			<index name="pk_agg_settlement_month" unique="PRIMARY_KEY" >
+				<column name="recv_mon" />
+			</index>
+		</table>
+		<table name="agg_settlement_current" prior="agg_settlement_currenе" >
+			<comment><![CDATA[Витрина данных о поселках для текущего месяца
+месяц recv_mon YYYY-MM-DD - послений день текущего месяца]]></comment>
+			<column name="recv_mon" type="VARCHAR" length="10" >
+				<comment><![CDATA[Месяц отчета]]></comment>
+			</column>
+			<column name="settlement_id" type="INT" >
+				<comment><![CDATA[идентификатор поселка]]></comment>
+			</column>
+			<column name="lat" type="NUMERIC" >
+				<comment><![CDATA[Широта]]></comment>
+			</column>
+			<column name="lng" type="NUMERIC" >
+				<comment><![CDATA[Долгота]]></comment>
+			</column>
+			<column name="active_cnt" prior="is_active" type="INT" >
+				<comment><![CDATA[Количство  активных клиентов]]></comment>
+			</column>
+			<column name="sysblock_cnt" prior="is_sysblock" type="BOOLEAN" >
+				<comment><![CDATA[Количство  заблокированных клиентов]]></comment>
+			</column>
+			<column name="charges_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма списаний за период]]></comment>
+			</column>
+			<column name="payments_sum_m" type="DOUBLE" >
+				<comment><![CDATA[Сумма платежей клиента за период]]></comment>
+			</column>
+			<column name="charges_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  списаний за период]]></comment>
+			</column>
+			<column name="payments_cnt_m" type="INT" >
+				<comment><![CDATA[Количество  платежей за период]]></comment>
+			</column>
+			<index name="idx_agg_settlement_currenе" unique="NORMAL" >
+				<column name="settlement_id" />
+			</index>
+		</table>
+	</schema>
+	<diagram_group name="Default" id="b8f4b7af-d85f-428f-ae9e-5b88b36b5527" >
+		<diagram name="month_aggregation" id="c59190c6-9098-4e32-b781-6dbf667a940b" confirmed="y" show_relation="columns" >
+			<entity schema="schema_customer" name="agg_customer_cur" color="3986C1" x="95" y="418" />
+			<entity schema="schema_agg_month" name="agg_customer_month" color="3986C1" x="57" y="57" />
+			<entity schema="schema_customer" name="agg_h3_cur" color="3986C1" x="570" y="418" />
+			<entity schema="schema_agg_month" name="agg_h3_month" color="3986C1" x="551" y="57" />
+			<entity schema="schema_customer" name="agg_settlement_cur" color="3986C1" x="323" y="418" />
+			<entity schema="schema_agg_month" name="agg_settlement_month" color="3986C1" x="304" y="57" />
+			<script name="SQL_Editor" id="85c8ebf3-34d1-4b7a-8775-0b709fcb8e77" language="SQL" >
+				<string><![CDATA[CREATE SCHEMA schema_agg_month;
+
+CREATE  TABLE agg_customer_month ( 
+	recv_mon             VARCHAR       ,
+	account_id           INT       ,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	is_active            BOOLEAN       ,
+	is_sysblock          BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       
+ );
+
+CREATE INDEX idx_agg_customer_month ON agg_customer_month ( recv_mon, account_id );
+
+ALTER TABLE agg_customer_month COMMENT 'Витрина данных о клиентах с историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_customer_month MODIFY recv_mon VARCHAR     COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_customer_month MODIFY account_id INT     COMMENT 'идентификатор клиента';
+
+ALTER TABLE agg_customer_month MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE agg_customer_month MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE agg_customer_month MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE agg_customer_month MODIFY is_active BOOLEAN     COMMENT 'Признак активного клиента';
+
+ALTER TABLE agg_customer_month MODIFY is_sysblock BOOLEAN     COMMENT 'Признак заблокированного клиента';
+
+ALTER TABLE agg_customer_month MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_customer_month MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+CREATE  TABLE agg_h3_month ( 
+	recv_mon             VARCHAR       ,
+	h3_res               INT       ,
+	h3_index             BIGINT       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_h3_month ON agg_h3_month ( recv_mon, h3_res, h3_index );
+
+ALTER TABLE agg_h3_month COMMENT 'Витрина данных о гексагонах с историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_h3_month MODIFY recv_mon VARCHAR     COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_h3_month MODIFY h3_res INT     COMMENT 'h3 resolution';
+
+ALTER TABLE agg_h3_month MODIFY h3_index BIGINT     COMMENT 'H3 index';
+
+ALTER TABLE agg_h3_month MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE agg_h3_month MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE agg_h3_month MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_h3_month MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE agg_h3_month MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE agg_h3_month MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+CREATE  TABLE agg_settlement_month ( 
+	recv_mon             VARCHAR       ,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_settlement_month ON agg_settlement_month ( recv_mon, settlement_id );
+
+ALTER TABLE agg_settlement_month COMMENT 'Витрина данных о поселках  историей по месяцам
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_settlement_month MODIFY recv_mon VARCHAR     COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_settlement_month MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE agg_settlement_month MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE agg_settlement_month MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE agg_settlement_month MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE agg_settlement_month MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE agg_settlement_month MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_settlement_month MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE agg_settlement_month MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE agg_settlement_month MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+]]></string>
+			</script>
+			<script name="SQL_Editor_001" id="45702c27-6f5c-4e97-a154-c05b6315ef59" language="SQL" >
+				<string><![CDATA[CREATE SCHEMA schema_customer;
+
+CREATE  TABLE agg_customer_cur ( 
+	recv_mon             VARCHAR(10)       ,
+	account_id           INT       ,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	is_active            BOOLEAN       ,
+	is_sysblock          BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       
+ );
+
+CREATE INDEX idx_agg_customer_month ON agg_customer_cur ( recv_mon, account_id );
+
+ALTER TABLE agg_customer_cur COMMENT 'Витрина данных о клиентах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_customer_cur MODIFY recv_mon VARCHAR(10)     COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_customer_cur MODIFY account_id INT     COMMENT 'идентификатор клиента';
+
+ALTER TABLE agg_customer_cur MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE agg_customer_cur MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE agg_customer_cur MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE agg_customer_cur MODIFY is_active BOOLEAN     COMMENT 'Признак активного клиента';
+
+ALTER TABLE agg_customer_cur MODIFY is_sysblock BOOLEAN     COMMENT 'Признак заблокированного клиента';
+
+ALTER TABLE agg_customer_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_customer_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+CREATE  TABLE agg_h3_cur ( 
+	recv_mon             VARCHAR(10)       ,
+	h3_res               INT       ,
+	h3_index             BIGINT       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_h3_month ON agg_h3_cur ( recv_mon, h3_res, h3_index );
+
+ALTER TABLE agg_h3_cur COMMENT 'Витрина данных о гексагонах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_h3_cur MODIFY recv_mon VARCHAR(10)     COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_h3_cur MODIFY h3_res INT     COMMENT 'h3 resolution';
+
+ALTER TABLE agg_h3_cur MODIFY h3_index BIGINT     COMMENT 'H3 index';
+
+ALTER TABLE agg_h3_cur MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE agg_h3_cur MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE agg_h3_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_h3_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE agg_h3_cur MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE agg_h3_cur MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+CREATE  TABLE agg_settlement_cur ( 
+	recv_mon             VARCHAR(10)    NOT NULL   PRIMARY KEY,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_settlement_month ON agg_settlement_cur ( recv_mon, settlement_id );
+
+ALTER TABLE agg_settlement_cur COMMENT 'Витрина данных о поселках  текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE agg_settlement_cur MODIFY recv_mon VARCHAR(10)  NOT NULL   COMMENT 'Месяц отчета';
+
+ALTER TABLE agg_settlement_cur MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE agg_settlement_cur MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE agg_settlement_cur MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE agg_settlement_cur MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE agg_settlement_cur MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE agg_settlement_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE agg_settlement_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE agg_settlement_cur MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE agg_settlement_cur MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+]]></string>
+			</script>
+		</diagram>
+		<diagram name="current_month_aggregation" id="90cc88e6-fd84-4e83-b611-ff148547e04f" confirmed="y" show_relation="columns" >
+			<entity schema="schema_customer" name="agg_customer_cur" color="3986C1" x="95" y="418" />
+			<entity schema="schema_agg_month" name="agg_customer_month" color="3986C1" x="57" y="57" />
+			<entity schema="schema_customer" name="agg_h3_cur" color="3986C1" x="570" y="418" />
+			<entity schema="schema_agg_month" name="agg_h3_month" color="3986C1" x="551" y="57" />
+			<entity schema="schema_customer" name="agg_settlement_cur" color="3986C1" x="323" y="418" />
+			<entity schema="schema_agg_month" name="agg_settlement_month" color="3986C1" x="304" y="57" />
+			<script name="SQL_Editor_001" id="0796fb03-ef10-4d4e-9f9a-b9671b742c2f" language="SQL" >
+				<string><![CDATA[CREATE SCHEMA schema_customer;
+
+CREATE  TABLE schema_customer.agg_customer_cur ( 
+	recv_mon             VARCHAR(10)       ,
+	account_id           INT       ,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	is_active            BOOLEAN       ,
+	is_sysblock          BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       
+ );
+
+CREATE INDEX idx_agg_customer_month ON schema_customer.agg_customer_cur ( recv_mon, account_id );
+
+ALTER TABLE schema_customer.agg_customer_cur COMMENT 'Витрина данных о клиентах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY recv_mon VARCHAR(10)     COMMENT 'Месяц отчета';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY account_id INT     COMMENT 'идентификатор клиента';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY is_active BOOLEAN     COMMENT 'Признак активного клиента';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY is_sysblock BOOLEAN     COMMENT 'Признак заблокированного клиента';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE schema_customer.agg_customer_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+CREATE  TABLE schema_customer.agg_h3_cur ( 
+	recv_mon             VARCHAR(10)       ,
+	h3_res               INT       ,
+	h3_index             BIGINT       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_h3_month ON schema_customer.agg_h3_cur ( recv_mon, h3_res, h3_index );
+
+ALTER TABLE schema_customer.agg_h3_cur COMMENT 'Витрина данных о гексагонах текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY recv_mon VARCHAR(10)     COMMENT 'Месяц отчета';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY h3_res INT     COMMENT 'h3 resolution';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY h3_index BIGINT     COMMENT 'H3 index';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE schema_customer.agg_h3_cur MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+CREATE  TABLE schema_customer.agg_settlement_cur ( 
+	recv_mon             VARCHAR(10)    NOT NULL   PRIMARY KEY,
+	settlement_id        INT       ,
+	lat                  NUMERIC       ,
+	lng                  NUMERIC       ,
+	active_cnt           INT       ,
+	sysblock_cnt         BOOLEAN       ,
+	charges_sum_m        DOUBLE       ,
+	payments_sum_m       DOUBLE       ,
+	charges_cnt_m        INT       ,
+	payments_cnt_m       INT       
+ );
+
+CREATE INDEX idx_agg_settlement_month ON schema_customer.agg_settlement_cur ( recv_mon, settlement_id );
+
+ALTER TABLE schema_customer.agg_settlement_cur COMMENT 'Витрина данных о поселках  текущего месяца
+месяц recv_mon YYYY-MM-DD - последний день месяца к которому относятся данные';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY recv_mon VARCHAR(10)  NOT NULL   COMMENT 'Месяц отчета';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY settlement_id INT     COMMENT 'идентификатор поселка';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY lat NUMERIC     COMMENT 'Широта';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY lng NUMERIC     COMMENT 'Долгота';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY active_cnt INT     COMMENT 'Количство  активных клиентов';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY sysblock_cnt BOOLEAN     COMMENT 'Количство  заблокированных клиентов';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY charges_sum_m DOUBLE     COMMENT 'Сумма списаний за период';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY payments_sum_m DOUBLE     COMMENT 'Сумма платежей клиента за период';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY charges_cnt_m INT     COMMENT 'Количество  списаний за период';
+
+ALTER TABLE schema_customer.agg_settlement_cur MODIFY payments_cnt_m INT     COMMENT 'Количество  платежей за период';
+
+]]></string>
+			</script>
+		</diagram>
+	</diagram_group>
+	<diagram_group name="Default_001" id="5ee41f84-1167-40ac-9ab5-194f42681a57" />
+	<diagram_group name="ch_month" id="5e480f3c-8c51-437e-83b7-ff7115866ecd" />
+	<diagram_group name="mariadb_current" id="99015460-5a30-4594-b041-9fe22d71093f" />
+</project>
