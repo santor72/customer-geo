@@ -20,18 +20,58 @@
         font: 12px/1.4 system-ui, sans-serif;
         z-index: 2;
       }
+      #controls {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 8px 10px;
+        border-radius: 6px;
+        font: 12px/1.4 system-ui, sans-serif;
+        z-index: 2;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      #controls label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #h3-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
     </style>
   </head>
   <body>
     <div id="status">инициализация…</div>
+    <div id="controls">
+      <label><input type="checkbox" id="toggle-h3" checked /> H3</label>
+      <div id="h3-group">
+        <span>H3 res:</span>
+        <label><input type="radio" name="h3-mode" value="auto" checked /> авто</label>
+        <label><input type="radio" name="h3-mode" value="6" /> 6</label>
+        <label><input type="radio" name="h3-mode" value="7" /> 7</label>
+        <label><input type="radio" name="h3-mode" value="8" /> 8</label>
+        <label><input type="radio" name="h3-mode" value="9" /> 9</label>
+        <label><input type="radio" name="h3-mode" value="10" /> 10</label>
+        <label><input type="radio" name="h3-mode" value="11" /> 11</label>
+      </div>
+      <label><input type="checkbox" id="toggle-settlements" checked /> Поселки</label>
+      <label><input type="checkbox" id="toggle-subscribers" checked /> Клиенты</label>
+      <label><input type="checkbox" id="toggle-labels" checked /> Подписи</label>
+    </div>
     <div id="map"></div>
 
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://unpkg.com/deck.gl@8.9.34/dist.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js"></script>
     <script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.min.js"></script>
     <script>
       window.API_BASE_URL = "http://localhost:8000/api/v1";
     </script>
-    <script src="app.js"></script>
+    <script src="app.js?v=12"></script>
   </body>
 </html>

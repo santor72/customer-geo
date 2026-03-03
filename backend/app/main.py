@@ -52,15 +52,51 @@ def table_name(base: str) -> str:
     return base
 
 
-def h3_index_to_str(index_val):
+def h3_candidates(index_val):
     if h3 is None:
         raise HTTPException(status_code=500, detail="h3 library is not available")
+    candidates = []
     if isinstance(index_val, str):
-        return index_val
-    try:
-        return h3.int_to_str(int(index_val))
-    except Exception:
-        return str(index_val)
+        candidates.append(index_val)
+        try:
+            candidates.append(format(int(index_val), "x"))
+            candidates.append("0x" + format(int(index_val), "x"))
+        except Exception:
+            pass
+    else:
+        try:
+            ival = int(index_val)
+            candidates.append(ival)
+            if hasattr(h3, "int_to_str"):
+                candidates.append(h3.int_to_str(ival))
+            candidates.append(format(ival, "x"))
+            candidates.append("0x" + format(ival, "x"))
+        except Exception:
+            pass
+    # de-dup while preserving order
+    seen = set()
+    uniq = []
+    for c in candidates:
+        key = str(c)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(c)
+    return uniq
+
+
+def h3_to_latlng(h3_idx: str):
+    # h3 v4 uses cell_to_latlng, older versions use h3_to_geo
+    if hasattr(h3, "cell_to_latlng"):
+        return h3.cell_to_latlng(h3_idx)
+    return h3.h3_to_geo(h3_idx)
+
+
+def h3_to_boundary(h3_idx: str):
+    # h3 v4 uses cell_to_boundary, older versions use h3_to_geo_boundary
+    if hasattr(h3, "cell_to_boundary"):
+        return h3.cell_to_boundary(h3_idx, geo_json=True)
+    return h3.h3_to_geo_boundary(h3_idx, geo_json=True)
 
 
 @app.get("/api/v1/months")
@@ -193,8 +229,6 @@ def get_h3_layer(
     h3_res: int = Query(7, ge=0, le=15),
 ):
     require_current_month(month)
-    if h3 is None:
-        raise HTTPException(status_code=500, detail="h3 library is not installed")
     try:
         min_lng, min_lat, max_lng, max_lat = parse_bbox(bbox)
     except ValueError as exc:
@@ -218,30 +252,31 @@ def get_h3_layer(
         },
     )
 
-    features = []
+    data = []
     for _, row in df.iterrows():
-        h3_idx = h3_index_to_str(row["h3_index"])
         try:
-            center_lat, center_lng = h3.h3_to_geo(h3_idx)
+            h3_idx = (
+                row["h3_index"]
+                if isinstance(row["h3_index"], str)
+                else format(int(row["h3_index"]), "x")
+            )
         except Exception:
             continue
-        if not (min_lng <= center_lng <= max_lng and min_lat <= center_lat <= max_lat):
-            continue
-        boundary = h3.h3_to_geo_boundary(h3_idx, geo_json=True)
-        coords = [[lng, lat] for lat, lng in boundary]
-        if coords and coords[0] != coords[-1]:
-            coords.append(coords[0])
-        features.append(
+        if h3 is not None:
+            try:
+                center_lat, center_lng = h3_to_latlng(h3_idx)
+                if not (min_lng <= center_lng <= max_lng and min_lat <= center_lat <= max_lat):
+                    continue
+            except Exception:
+                # если не удалось вычислить центр — не фильтруем
+                pass
+        data.append(
             {
-                "type": "Feature",
-                "geometry": {"type": "Polygon", "coordinates": [coords]},
-                "properties": {
-                    "h3_index": h3_idx,
-                    "active_cnt": int(row["active_cnt"]) if pd.notna(row["active_cnt"]) else 0,
-                    "charges_sum_m": float(row["charges_sum_m"]) if pd.notna(row["charges_sum_m"]) else 0.0,
-                    "payments_sum_m": float(row["payments_sum_m"]) if pd.notna(row["payments_sum_m"]) else 0.0,
-                },
+                "h3_index": h3_idx,
+                "active_cnt": int(row["active_cnt"]) if pd.notna(row["active_cnt"]) else 0,
+                "charges_sum_m": float(row["charges_sum_m"]) if pd.notna(row["charges_sum_m"]) else 0.0,
+                "payments_sum_m": float(row["payments_sum_m"]) if pd.notna(row["payments_sum_m"]) else 0.0,
             }
         )
 
-    return {"type": "FeatureCollection", "features": features}
+    return {"type": "H3", "data": data}
