@@ -38,30 +38,192 @@
         align-items: center;
         gap: 6px;
       }
-      #h3-group {
+      #reset-view {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        transform: translateY(calc(100% + 8px));
+        z-index: 3;
+        border: none;
+        background: rgba(31, 41, 55, 0.95);
+        color: #fff;
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font: 12px/1 system-ui, sans-serif;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      }
+      #reset-view:hover {
+        background: rgba(17, 24, 39, 0.95);
+      }
+      #search-control {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        padding: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+      #search-toggle {
+        border: none;
+        background: #1f2937;
+        color: #fff;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font: 12px/1 system-ui, sans-serif;
+        cursor: pointer;
+      }
+      #search-panel {
+        display: none;
+        width: 240px;
+      }
+      #search-panel.open {
+        display: block;
+      }
+      #search-input {
+        width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font: 12px/1.4 system-ui, sans-serif;
+        outline: none;
+      }
+      #search-results {
+        margin-top: 6px;
+        max-height: 240px;
+        overflow: auto;
+        border: 1px solid #eef0f2;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .search-item {
+        padding: 6px 8px;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+        font: 12px/1.4 system-ui, sans-serif;
+      }
+      .search-item:last-child {
+        border-bottom: none;
+      }
+      .search-item:hover {
+        background: #f8fafc;
+      }
+      .search-item.active {
+        background: #e5f0ff;
+      }
+      .search-item-title {
+        font-weight: 600;
+      }
+      .search-item-sub {
+        color: #6b7280;
+        font-size: 11px;
+      }
+      #geocode-control {
+        position: absolute;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        z-index: 3;
+        width: min(520px, calc(100vw - 32px));
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #geocode-input {
+        width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font: 13px/1.4 system-ui, sans-serif;
+        outline: none;
+      }
+      #geocode-results {
+        max-height: 240px;
+        overflow: auto;
+        border: 1px solid #eef0f2;
+        border-radius: 10px;
+        background: #fff;
+      }
+      .tooltip-card {
+        font: 12px/1.3 system-ui, sans-serif;
+        background: rgba(24, 27, 31, 0.95);
+        color: #f2f3f5;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 10px 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        min-width: 190px;
+      }
+      .tooltip-title {
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.2px;
+        margin-bottom: 6px;
         display: flex;
         align-items: center;
         gap: 6px;
       }
+      .tooltip-type {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .tooltip-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+      }
+      .tooltip-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .tooltip-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 10px;
+      }
+      .tooltip-value {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .tooltip-h3 .tooltip-type { background: rgba(255, 140, 0, 0.25); }
+      .tooltip-settlement .tooltip-type { background: rgba(34, 139, 230, 0.25); }
+      .tooltip-cluster .tooltip-type { background: rgba(50, 205, 50, 0.25); }
+      .tooltip-subscriber .tooltip-type { background: rgba(160, 160, 160, 0.25); }
     </style>
   </head>
   <body>
     <div id="status">инициализация…</div>
     <div id="controls">
       <label><input type="checkbox" id="toggle-h3" checked /> H3</label>
-      <div id="h3-group">
-        <span>H3 res:</span>
-        <label><input type="radio" name="h3-mode" value="auto" checked /> авто</label>
-        <label><input type="radio" name="h3-mode" value="6" /> 6</label>
-        <label><input type="radio" name="h3-mode" value="7" /> 7</label>
-        <label><input type="radio" name="h3-mode" value="8" /> 8</label>
-        <label><input type="radio" name="h3-mode" value="9" /> 9</label>
-        <label><input type="radio" name="h3-mode" value="10" /> 10</label>
-        <label><input type="radio" name="h3-mode" value="11" /> 11</label>
-      </div>
       <label><input type="checkbox" id="toggle-settlements" checked /> Поселки</label>
       <label><input type="checkbox" id="toggle-subscribers" checked /> Клиенты</label>
       <label><input type="checkbox" id="toggle-labels" checked /> Подписи</label>
+    </div>
+    <button id="reset-view" title="Вернуть начальный вид">↶</button>
+    <div id="search-control">
+      <button id="search-toggle" title="Поиск поселков">Поиск</button>
+      <div id="search-panel">
+        <input id="search-input" type="text" placeholder="Введите поселок..." />
+        <div id="search-results"></div>
+      </div>
+    </div>
+    <div id="geocode-control">
+      <input id="geocode-input" type="text" placeholder="Введите адрес для геокодинга..." />
+      <div id="geocode-results"></div>
     </div>
     <div id="map"></div>
 
@@ -72,6 +234,6 @@
     <script>
       window.API_BASE_URL = "http://localhost:8000/api/v1";
     </script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=25"></script>
   </body>
 </html>

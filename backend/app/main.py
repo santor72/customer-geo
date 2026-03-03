@@ -4,8 +4,9 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from .config import MYSQL_SCHEMA
+from .config import MYSQL_SCHEMA, DADATA_TOKEN, DADATA_SECRET, YANDEX_API_KEY
 from .db import get_engine, get_latest_recv_mon
+import requests
 
 try:
     import h3
@@ -180,7 +181,7 @@ def get_settlements(
     recv_mon = get_latest_recv_mon(table_name("agg_settlement_cur"))
     sql = text(
         f"""
-        SELECT settlement_id, lat, lng, active_cnt, charges_sum_m, payments_sum_m
+        SELECT settlement_id, title, lat, lng, active_cnt, charges_sum_m, payments_sum_m
         FROM {table_name("agg_settlement_cur")}
         WHERE recv_mon = :recv_mon
           AND lng BETWEEN :min_lng AND :max_lng
@@ -212,6 +213,7 @@ def get_settlements(
                 },
                 "properties": {
                     "settlement_id": int(row["settlement_id"]),
+                    "title": str(row["title"]) if pd.notna(row["title"]) else "",
                     "active_cnt": int(row["active_cnt"]) if pd.notna(row["active_cnt"]) else 0,
                     "charges_sum_m": float(row["charges_sum_m"]) if pd.notna(row["charges_sum_m"]) else 0.0,
                     "payments_sum_m": float(row["payments_sum_m"]) if pd.notna(row["payments_sum_m"]) else 0.0,
@@ -280,3 +282,113 @@ def get_h3_layer(
         )
 
     return {"type": "H3", "data": data}
+
+
+@app.get("/api/v1/settlements/search")
+def search_settlements(
+    month: str = Query("current"),
+    q: str = Query(..., min_length=2),
+    limit: int = Query(20, ge=1, le=50),
+):
+    require_current_month(month)
+    recv_mon = get_latest_recv_mon(table_name("agg_settlement_cur"))
+    sql = text(
+        f"""
+        SELECT settlement_id, title, lat, lng, active_cnt
+        FROM {table_name("agg_settlement_cur")}
+        WHERE recv_mon = :recv_mon
+          AND title LIKE :q
+        ORDER BY active_cnt DESC
+        LIMIT :limit
+        """
+    )
+    df = pd.read_sql_query(
+        sql,
+        get_engine(),
+        params={
+            "recv_mon": recv_mon,
+            "q": f"%{q}%",
+            "limit": limit,
+        },
+    )
+
+    items = []
+    for _, row in df.iterrows():
+        items.append(
+            {
+                "settlement_id": int(row["settlement_id"]),
+                "title": str(row["title"]) if pd.notna(row["title"]) else "",
+                "lat": float(row["lat"]) if pd.notna(row["lat"]) else None,
+                "lng": float(row["lng"]) if pd.notna(row["lng"]) else None,
+                "active_cnt": int(row["active_cnt"]) if pd.notna(row["active_cnt"]) else 0,
+            }
+        )
+    return {"items": items}
+
+
+@app.get("/api/v1/address/suggest")
+def suggest_address(
+    q: str = Query(..., min_length=2),
+    limit: int = Query(10, ge=1, le=20),
+):
+    if not DADATA_TOKEN:
+        raise HTTPException(status_code=500, detail="DADATA_TOKEN is not configured")
+
+    url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address"
+    headers = {"Authorization": f"Token {DADATA_TOKEN}"}
+    if DADATA_SECRET:
+        headers["X-Secret"] = DADATA_SECRET
+
+    payload = {"query": q, "count": limit}
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=6)
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail="DADATA request failed") from exc
+
+    if not resp.ok:
+        raise HTTPException(status_code=resp.status_code, detail="DADATA error")
+    data = resp.json()
+    suggestions = data.get("suggestions", [])
+    items = [
+        {
+            "value": s.get("value", ""),
+            "unrestricted_value": s.get("unrestricted_value", ""),
+            "data": s.get("data", {}),
+        }
+        for s in suggestions
+    ]
+    return {"items": items}
+
+
+@app.get("/api/v1/address/geocode")
+def geocode_address(
+    q: str = Query(..., min_length=2),
+):
+    if not YANDEX_API_KEY:
+        raise HTTPException(status_code=500, detail="YANDEX_API_KEY is not configured")
+
+    url = "https://geocode-maps.yandex.ru/1.x/"
+    params = {"apikey": YANDEX_API_KEY, "geocode": q, "format": "json", "lang": "ru_RU"}
+    try:
+        resp = requests.get(url, params=params, timeout=6)
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail="YANDEX request failed") from exc
+
+    if not resp.ok:
+        raise HTTPException(status_code=resp.status_code, detail="YANDEX error")
+    data = resp.json()
+    try:
+        members = data["response"]["GeoObjectCollection"]["featureMember"]
+        if not members:
+            return {"found": False}
+        geo = members[0]["GeoObject"]
+        pos = geo["Point"]["pos"]
+        lng_str, lat_str = pos.split(" ")
+        return {
+            "found": True,
+            "lat": float(lat_str),
+            "lng": float(lng_str),
+            "text": geo.get("name") or geo.get("description") or "",
+        }
+    except Exception:
+        return {"found": False}

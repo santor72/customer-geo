@@ -7,14 +7,53 @@ const toggleH3 = document.getElementById("toggle-h3");
 const toggleSettlements = document.getElementById("toggle-settlements");
 const toggleSubscribers = document.getElementById("toggle-subscribers");
 const toggleLabels = document.getElementById("toggle-labels");
-const h3ModeInputs = Array.from(document.querySelectorAll('input[name="h3-mode"]'));
+const resetViewBtn = document.getElementById("reset-view");
+const searchToggle = document.getElementById("search-toggle");
+const searchPanel = document.getElementById("search-panel");
+const searchInput = document.getElementById("search-input");
+const searchResults = document.getElementById("search-results");
+const geocodeInput = document.getElementById("geocode-input");
+const geocodeResults = document.getElementById("geocode-results");
 
 const map = new maplibregl.Map({
   container: "map",
   style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
   center: [37.6176, 55.7558],
-  zoom: 9,
+  zoom: 7,
 });
+
+const numberFmt = new Intl.NumberFormat("ru-RU");
+const moneyFmt = new Intl.NumberFormat("ru-RU", {maximumFractionDigits: 0});
+
+function formatInt(value) {
+  return numberFmt.format(Math.round(value || 0));
+}
+
+function formatMoney(value) {
+  return moneyFmt.format(Math.round(value || 0));
+}
+
+function tooltipHtml({type, title, metrics}) {
+  const rows = (metrics || [])
+    .map(
+      (m) => `
+        <div class="tooltip-item">
+          <div class="tooltip-label">${m.label}</div>
+          <div class="tooltip-value">${m.value}</div>
+        </div>
+      `
+    )
+    .join("");
+  return `
+    <div class="tooltip-card tooltip-${type}">
+      <div class="tooltip-title">
+        ${title}
+        <span class="tooltip-type">${type}</span>
+      </div>
+      <div class="tooltip-grid">${rows}</div>
+    </div>
+  `;
+}
 
 const overlay = new MapboxOverlay({
   layers: [],
@@ -24,29 +63,113 @@ const overlay = new MapboxOverlay({
     if (p.cluster) {
       const active = p.active_cnt || p.point_count || 0;
       const sysblock = p.sysblock_cnt || 0;
-      const paySum = Math.round(p.payments_sum_m || 0);
-      const chgSum = Math.round(p.charges_sum_m || 0);
-      return `A: ${active}\nS: ${sysblock}\nP: ${paySum}\nC: ${chgSum}`;
+      const paySum = p.payments_sum_m || 0;
+      const chgSum = p.charges_sum_m || 0;
+      return {
+        html: tooltipHtml({
+          type: "cluster",
+          title: `Кластер (${formatInt(p.point_count || 0)})`,
+          metrics: [
+            {label: "Активные", value: formatInt(active)},
+            {label: "Блокировки", value: formatInt(sysblock)},
+            {label: "Платежи, ₽", value: formatMoney(paySum)},
+            {label: "Начисления, ₽", value: formatMoney(chgSum)},
+          ],
+        }),
+      };
     }
     if (layer && layer.id === "h3-layer") {
       const active = p.active_cnt || 0;
-      const paySum = Math.round(p.payments_sum_m || 0);
-      const chgSum = Math.round(p.charges_sum_m || 0);
-      return `A: ${active}\nP: ${paySum}\nC: ${chgSum}`;
+      const paySum = p.payments_sum_m || 0;
+      const chgSum = p.charges_sum_m || 0;
+      return {
+        html: tooltipHtml({
+          type: "h3",
+          title: `H3 ${p.h3_index || ""}`.trim(),
+          metrics: [
+            {label: "Активные", value: formatInt(active)},
+            {label: "Платежи, ₽", value: formatMoney(paySum)},
+            {label: "Начисления, ₽", value: formatMoney(chgSum)},
+          ],
+        }),
+      };
     }
     if (layer && layer.id === "settlements-layer") {
       const active = p.active_cnt || 0;
-      const paySum = Math.round(p.payments_sum_m || 0);
-      const chgSum = Math.round(p.charges_sum_m || 0);
-      return `A: ${active}\nP: ${paySum}\nC: ${chgSum}`;
+      const paySum = p.payments_sum_m || 0;
+      const chgSum = p.charges_sum_m || 0;
+      return {
+        html: tooltipHtml({
+          type: "settlement",
+          title: `Поселок ${p.title || formatInt(p.settlement_id || 0)}`,
+          metrics: [
+            {label: "Активные", value: formatInt(active)},
+            {label: "Платежи, ₽", value: formatMoney(paySum)},
+            {label: "Начисления, ₽", value: formatMoney(chgSum)},
+          ],
+        }),
+      };
+    }
+    if (layer && layer.id === "subscribers-layer" && !p.cluster) {
+      return {
+        html: tooltipHtml({
+          type: "subscriber",
+          title: `Абонент ${formatInt(p.account_id || 0)}`,
+          metrics: [
+            {label: "Активен", value: p.is_active ? "Да" : "Нет"},
+            {label: "Блокировка", value: p.is_sysblock ? "Да" : "Нет"},
+            {label: "Платежи, ₽", value: formatMoney(p.payments_sum_m || 0)},
+            {label: "Начисления, ₽", value: formatMoney(p.charges_sum_m || 0)},
+          ],
+        }),
+      };
     }
     return null;
   },
 });
 map.addControl(overlay);
 
+const STORAGE_KEY = "customer_geo_layers";
+
+function readLayerPrefs() {
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function writeLayerPrefs() {
+  const prefs = {
+    h3: !!(toggleH3 && toggleH3.checked),
+    settlements: !!(toggleSettlements && toggleSettlements.checked),
+    subscribers: !!(toggleSubscribers && toggleSubscribers.checked),
+    labels: !!(toggleLabels && toggleLabels.checked),
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+}
+
+function applyLayerPrefs() {
+  const prefs = readLayerPrefs();
+  if (!prefs) return;
+  if (toggleH3 && typeof prefs.h3 === "boolean") toggleH3.checked = prefs.h3;
+  if (toggleSettlements && typeof prefs.settlements === "boolean") toggleSettlements.checked = prefs.settlements;
+  if (toggleSubscribers && typeof prefs.subscribers === "boolean") toggleSubscribers.checked = prefs.subscribers;
+  if (toggleLabels && typeof prefs.labels === "boolean") toggleLabels.checked = prefs.labels;
+}
+
 let debounceTimer = null;
 let lastFetch = 0;
+let searchTimer = null;
+let geocodeTimer = null;
+let searchMarker = null;
+let searchActiveIndex = -1;
+let geocodeActiveIndex = -1;
+let initialBounds = null;
+let initialCenter = null;
+let initialZoom = null;
 
 function getBBox() {
   const b = map.getBounds();
@@ -67,12 +190,7 @@ function pickH3Res(zoom) {
 }
 
 function getH3Res(zoom) {
-  const selected = h3ModeInputs.find((el) => el.checked);
-  if (!selected || selected.value === "auto") {
-    return pickH3Res(zoom);
-  }
-  const parsed = parseInt(selected.value, 10);
-  return Number.isFinite(parsed) ? parsed : pickH3Res(zoom);
+  return pickH3Res(zoom);
 }
 
 function h3Boundary(h3Index) {
@@ -114,6 +232,117 @@ async function fetchLayer(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json();
+}
+
+function setSearchMarker(lng, lat) {
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+  if (!searchMarker) {
+    searchMarker = new maplibregl.Marker({color: "#ef4444"});
+  }
+  searchMarker.setLngLat([lng, lat]).addTo(map);
+}
+
+function clearSearchResults() {
+  if (!searchResults) return;
+  searchResults.innerHTML = "";
+  searchActiveIndex = -1;
+}
+
+function renderSearchResults(items) {
+  clearSearchResults();
+  if (!searchResults) return;
+  if (!items || !items.length) {
+    const empty = document.createElement("div");
+    empty.className = "search-item";
+    empty.textContent = "Ничего не найдено";
+    searchResults.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "search-item";
+    row.dataset.title = item.title || "";
+    row.innerHTML = `
+      <div class="search-item-title">${item.title || "Без названия"}</div>
+      <div class="search-item-sub">ID ${item.settlement_id} • A ${formatInt(item.active_cnt || 0)}</div>
+    `;
+    row.addEventListener("click", () => {
+      if (searchInput) searchInput.value = item.title || "";
+      if (Number.isFinite(item.lng) && Number.isFinite(item.lat)) {
+        setSearchMarker(item.lng, item.lat);
+        map.flyTo({center: [item.lng, item.lat], zoom: Math.max(map.getZoom(), 12)});
+      }
+      closeSearchPanel();
+    });
+    searchResults.appendChild(row);
+  }
+}
+
+function clearGeocodeResults() {
+  if (!geocodeResults) return;
+  geocodeResults.innerHTML = "";
+  geocodeActiveIndex = -1;
+}
+
+function clickFirstResult(container) {
+  if (!container) return false;
+  const first = container.querySelector(".search-item");
+  if (first) {
+    first.click();
+    return true;
+  }
+  return false;
+}
+
+function setActiveResult(container, index) {
+  if (!container) return -1;
+  const items = Array.from(container.querySelectorAll(".search-item"));
+  if (!items.length) return -1;
+  const next = Math.max(0, Math.min(index, items.length - 1));
+  items.forEach((el, i) => el.classList.toggle("active", i === next));
+  const active = items[next];
+  if (active && typeof active.scrollIntoView === "function") {
+    active.scrollIntoView({block: "nearest"});
+  }
+  return next;
+}
+
+function renderGeocodeResults(items) {
+  clearGeocodeResults();
+  if (!geocodeResults) return;
+  if (!items || !items.length) {
+    const empty = document.createElement("div");
+    empty.className = "search-item";
+    empty.textContent = "Ничего не найдено";
+    geocodeResults.appendChild(empty);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "search-item";
+    row.dataset.value = item.value || "";
+    row.dataset.unrestricted = item.unrestricted_value || "";
+    row.innerHTML = `
+      <div class="search-item-title">${item.value || "Адрес"}</div>
+      <div class="search-item-sub">${item.unrestricted_value || ""}</div>
+    `;
+    row.addEventListener("click", async () => {
+      try {
+        const q = item.value || item.unrestricted_value;
+        if (!q) return;
+        if (geocodeInput) geocodeInput.value = q;
+        const url = `${API_BASE}/address/geocode?q=${encodeURIComponent(q)}`;
+        const data = await fetchLayer(url);
+        if (data && data.found && Number.isFinite(data.lng) && Number.isFinite(data.lat)) {
+          setSearchMarker(data.lng, data.lat);
+          map.flyTo({center: [data.lng, data.lat], zoom: Math.max(map.getZoom(), 14)});
+        }
+      } catch (err) {
+        // ignore
+      }
+    });
+    geocodeResults.appendChild(row);
+  }
 }
 
 function setStatus(text) {
@@ -301,16 +530,159 @@ function scheduleUpdate() {
 }
 
 map.on("load", () => {
+  initialBounds = map.getBounds();
+  initialCenter = map.getCenter();
+  initialZoom = map.getZoom();
+  applyLayerPrefs();
   updateLayers();
   map.on("moveend", scheduleUpdate);
   map.on("zoomend", scheduleUpdate);
 });
 
+if (resetViewBtn) {
+  resetViewBtn.addEventListener("click", () => {
+    if (initialCenter && Number.isFinite(initialZoom)) {
+      map.easeTo({center: initialCenter, zoom: initialZoom, duration: 600});
+    } else if (initialBounds) {
+      map.fitBounds(initialBounds, {padding: 20, duration: 600});
+    }
+  });
+}
+
 [toggleH3, toggleSettlements, toggleSubscribers, toggleLabels].forEach((el) => {
   if (!el) return;
-  el.addEventListener("change", scheduleUpdate);
+  el.addEventListener("change", () => {
+    writeLayerPrefs();
+    scheduleUpdate();
+  });
 });
 
-h3ModeInputs.forEach((el) => {
-  el.addEventListener("change", scheduleUpdate);
+if (searchToggle && searchPanel) {
+  searchToggle.addEventListener("click", () => {
+    searchPanel.classList.toggle("open");
+    if (searchPanel.classList.contains("open") && searchInput) {
+      searchInput.focus();
+    }
+  });
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    if (searchTimer) clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    searchTimer = setTimeout(async () => {
+      if (!q) {
+        clearSearchResults();
+        return;
+      }
+      try {
+        const url = `${API_BASE}/settlements/search?month=current&q=${encodeURIComponent(q)}&limit=20`;
+        const data = await fetchLayer(url);
+        renderSearchResults(data.items || []);
+      } catch (err) {
+        clearSearchResults();
+      }
+    }, 250);
+  });
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const active = searchResults ? searchResults.querySelector(".search-item.active") : null;
+      if (active) {
+        active.click();
+      } else if (!clickFirstResult(searchResults)) {
+        closeSearchPanel();
+      }
+    }
+    if (e.key === " " || e.key === "Spacebar") {
+      const active = searchResults ? searchResults.querySelector(".search-item.active") : null;
+      if (active && searchInput) {
+        e.preventDefault();
+        searchInput.value = active.dataset.title || "";
+      }
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeSearchPanel();
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      searchActiveIndex = setActiveResult(searchResults, searchActiveIndex + 1);
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      searchActiveIndex = setActiveResult(searchResults, searchActiveIndex - 1);
+    }
+  });
+}
+
+
+function closeSearchPanel() {
+  if (!searchPanel) return;
+  searchPanel.classList.remove("open");
+  if (searchInput) searchInput.value = "";
+  clearSearchResults();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSearchPanel();
 });
+
+document.addEventListener("click", (e) => {
+  if (!searchPanel || !searchPanel.classList.contains("open")) return;
+  const target = e.target;
+  if (!target) return;
+  if (searchPanel.contains(target) || (searchToggle && searchToggle.contains(target))) return;
+  closeSearchPanel();
+});
+
+if (geocodeInput) {
+  geocodeInput.addEventListener("input", () => {
+    if (geocodeTimer) clearTimeout(geocodeTimer);
+    const q = geocodeInput.value.trim();
+    geocodeTimer = setTimeout(async () => {
+      if (!q) {
+        clearGeocodeResults();
+        return;
+      }
+      try {
+        const url = `${API_BASE}/address/suggest?q=${encodeURIComponent(q)}&limit=10`;
+        const data = await fetchLayer(url);
+        renderGeocodeResults(data.items || []);
+      } catch (err) {
+        clearGeocodeResults();
+      }
+    }, 250);
+  });
+  geocodeInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const active = geocodeResults ? geocodeResults.querySelector(".search-item.active") : null;
+      if (active) {
+        active.click();
+      } else {
+        clickFirstResult(geocodeResults);
+      }
+    }
+    if (e.key === " " || e.key === "Spacebar") {
+      const active = geocodeResults ? geocodeResults.querySelector(".search-item.active") : null;
+      if (active && geocodeInput) {
+        e.preventDefault();
+        const value = active.dataset.value || active.dataset.unrestricted || "";
+        geocodeInput.value = value;
+      }
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      clearGeocodeResults();
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      geocodeActiveIndex = setActiveResult(geocodeResults, geocodeActiveIndex + 1);
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      geocodeActiveIndex = setActiveResult(geocodeResults, geocodeActiveIndex - 1);
+    }
+  });
+}
